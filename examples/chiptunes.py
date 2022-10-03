@@ -65,9 +65,7 @@ def noise(length):
     '''
     # Amplitude envelope, decaying exponential
     amp_envelope = np.exp(np.linspace(0, -10, length))
-    # Synthesize gaussian random noise
-    drum_data = amp_envelope*np.random.randn(length)
-    return drum_data
+    return amp_envelope*np.random.randn(length)
 
 
 def synthesize_drum_instrument(instrument, fs=44100):
@@ -133,7 +131,7 @@ def synthesize_drum_instrument(instrument, fs=44100):
         else:
             if drum_name is not '':
                 # This should never happen
-                print('Unexpected drum {}'.format(drum_name))
+                print(f'Unexpected drum {drum_name}')
             continue
         # Add in the synthesized waveform
         start = int(note.start*fs)
@@ -180,8 +178,8 @@ def arpeggiate_instrument(instrument, arpeggio_time):
             m += 1
         # Arpeggiate the collected notes
         time = instrument.notes[n].start
-        pitch_index = 0
         if len(chord_notes) > 2:
+            pitch_index = 0
             while time < instrument.notes[n].end:
                 # Get the pitch and velocity of this note, but mod the index
                 # to circulate
@@ -277,11 +275,11 @@ if __name__ == '__main__':
 
     # Parse command line arguments
     parameters = vars(parser.parse_args(sys.argv[1:]))
-    print("Synthesizing {} ...".format(parameters['midi_file']))
+    print(f"Synthesizing {parameters['midi_file']} ...")
     # Load in MIDI data and synthesize using chiptunes_synthesize
     midi_object = pretty_midi.PrettyMIDI(parameters['midi_file'])
     synthesized = chiptunes_synthesize(midi_object, parameters['fs'])
-    print("Writing {} ...".format(parameters['output_file']))
+    print(f"Writing {parameters['output_file']} ...")
     # Write out
     scipy.io.wavfile.write(
         parameters['output_file'], parameters['fs'], synthesized)
