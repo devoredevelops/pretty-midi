@@ -110,24 +110,18 @@ class TimeSignature(object):
 
     def __init__(self, numerator, denominator, time):
         if not (isinstance(numerator, int) and numerator > 0):
-            raise ValueError(
-                '{} is not a valid `numerator` type or value'.format(
-                    numerator))
+            raise ValueError(f'{numerator} is not a valid `numerator` type or value')
         if not (isinstance(denominator, int) and denominator > 0):
-            raise ValueError(
-                '{} is not a valid `denominator` type or value'.format(
-                    denominator))
+            raise ValueError(f'{denominator} is not a valid `denominator` type or value')
         if not (isinstance(time, (int, float)) and time >= 0):
-            raise ValueError(
-                '{} is not a valid `time` type or value'.format(time))
+            raise ValueError(f'{time} is not a valid `time` type or value')
 
         self.numerator = numerator
         self.denominator = denominator
         self.time = time
 
     def __repr__(self):
-        return "TimeSignature(numerator={}, denominator={}, time={})".format(
-            self.numerator, self.denominator, self.time)
+        return f"TimeSignature(numerator={self.numerator}, denominator={self.denominator}, time={self.time})"
 
     def __str__(self):
         return '{}/{} at {:.2f} seconds'.format(
@@ -159,19 +153,15 @@ class KeySignature(object):
         if not all((isinstance(key_number, int),
                     key_number >= 0,
                     key_number < 24)):
-            raise ValueError(
-                '{} is not a valid `key_number` type or value'.format(
-                    key_number))
+            raise ValueError(f'{key_number} is not a valid `key_number` type or value')
         if not (isinstance(time, (int, float)) and time >= 0):
-            raise ValueError(
-                '{} is not a valid `time` type or value'.format(time))
+            raise ValueError(f'{time} is not a valid `time` type or value')
 
         self.key_number = key_number
         self.time = time
 
     def __repr__(self):
-        return "KeySignature(key_number={}, time={})".format(
-            self.key_number, self.time)
+        return f"KeySignature(key_number={self.key_number}, time={self.time})"
 
     def __str__(self):
         return '{} at {:.2f} seconds'.format(

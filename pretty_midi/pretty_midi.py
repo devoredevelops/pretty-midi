@@ -79,13 +79,14 @@ class PrettyMIDI(object):
             self._load_tempo_changes(midi_data)
 
             # Update the array which maps ticks to time
-            max_tick = max([max([e.time for e in t])
-                            for t in midi_data.tracks]) + 1
+            max_tick = (max(max(e.time for e in t) for t in midi_data.tracks) + 1)
             # If max_tick is huge, the MIDI file is probably corrupt
             # and creating the __tick_to_time array will thrash memory
             if max_tick > MAX_TICK:
-                raise ValueError(('MIDI file has a largest tick of {},'
-                                  ' it is likely corrupt'.format(max_tick)))
+                raise ValueError(
+                    f'MIDI file has a largest tick of {max_tick}, it is likely corrupt'
+                )
+
 
             # Create list that maps ticks to time in seconds
             self._update_tick_to_time(max_tick)
@@ -147,10 +148,8 @@ class PrettyMIDI(object):
         # So, just look at events on track 0
         for event in midi_data.tracks[0]:
             if event.type == 'set_tempo':
-                # Only allow one tempo change event at the beginning
                 if event.time == 0:
-                    bpm = 6e7/event.tempo
-                    self._tick_scales = [(0, 60.0/(bpm*self.resolution))]
+                    self._tick_scales = [(0, 60.0 / (6e7/event.tempo * self.resolution))]
                 else:
                     # Get time and BPM up to this point
                     _, last_tick_scale = self._tick_scales[-1]
@@ -206,7 +205,7 @@ class PrettyMIDI(object):
                 elif event.type == 'text':
                     text_events.append(Text(
                         event.text, self.__tick_to_time[event.time]))
-                    
+
             if lyrics:
                 tracks_with_lyrics.append(lyrics)
             if text_events:
@@ -331,13 +330,11 @@ class PrettyMIDI(object):
                 if event.type == 'program_change':
                     # Update the instrument for this channel
                     current_instrument[event.channel] = event.program
-                # Note ons are note on events with velocity > 0
                 elif event.type == 'note_on' and event.velocity > 0:
                     # Store this as the last note-on location
                     note_on_index = (event.channel, event.note)
                     last_note_on[note_on_index].append((
                         event.time, event.velocity))
-                # Note offs can also be note on events with 0 velocity
                 elif event.type == 'note_off' or (event.type == 'note_on' and
                                                   event.velocity == 0):
                     # Check that a note-on exists (ignore spurious note-offs)
@@ -378,14 +375,13 @@ class PrettyMIDI(object):
                             # Add the note event
                             instrument.notes.append(note)
 
-                        if len(notes_to_close) > 0 and len(notes_to_keep) > 0:
+                        if notes_to_close and notes_to_keep:
                             # Note-on on the same tick but we already closed
                             # some previous notes -> it will continue, keep it.
                             last_note_on[key] = notes_to_keep
                         else:
                             # Remove the last note on for this instrument
                             del last_note_on[key]
-                # Store pitch bends
                 elif event.type == 'pitchwheel':
                     # Create pitch bend class instance
                     bend = PitchBend(event.pitch,
@@ -398,7 +394,6 @@ class PrettyMIDI(object):
                         program, event.channel, track_idx, 0)
                     # Add the pitch bend event
                     instrument.pitch_bends.append(bend)
-                # Store control changes
                 elif event.type == 'control_change':
                     control_change = ControlChange(
                         event.control, event.value,
@@ -412,7 +407,7 @@ class PrettyMIDI(object):
                     # Add the control change event
                     instrument.control_changes.append(control_change)
         # Initialize list of instruments from instrument_map
-        self.instruments = [i for i in instrument_map.values()]
+        self.instruments = list(instrument_map.values())
 
     def get_tempo_changes(self):
         """Return arrays of tempo changes in quarter notes-per-minute and their
@@ -455,10 +450,7 @@ class PrettyMIDI(object):
                  [e.time for m in meta_events for e in m] +
                  self.get_tempo_changes()[0].tolist())
         # If there are no events, return 0
-        if len(times) == 0:
-            return 0.
-        else:
-            return max(times)
+        return 0. if len(times) == 0 else max(times)
 
     def estimate_tempi(self):
         """Return an empirical estimate of tempos and each tempo's probability.
@@ -610,7 +602,7 @@ class PrettyMIDI(object):
                     # Less of the beat remains now
                     beat_remaining -= overshot_ratio
                     # Increment the tempo index
-                    tempo_idx = tempo_idx + 1
+                    tempo_idx += 1
                     # Update the current bpm
                     bpm = get_current_bpm()
                 # Add in the remainder of the beat at the current tempo
@@ -732,10 +724,7 @@ class PrettyMIDI(object):
             """ Returns the first index of a value in an array, or `default` if
             the value doesn't appear in the array."""
             idx = np.flatnonzero(np.isclose(array, value))
-            if idx.size > 0:
-                return idx[0]
-            else:
-                return default
+            return idx[0] if idx.size > 0 else default
 
         downbeats = []
         end_beat_idx = 0
@@ -843,9 +832,14 @@ class PrettyMIDI(object):
             by their durations or velocities.
         """
         # Sum up all histograms from all instruments defaulting to np.zeros(12)
-        histogram = sum([
-            i.get_pitch_class_histogram(use_duration, use_velocity)
-            for i in self.instruments], np.zeros(12))
+        histogram = sum(
+            (
+                i.get_pitch_class_histogram(use_duration, use_velocity)
+                for i in self.instruments
+            ),
+            np.zeros(12),
+        )
+
 
         # Normalize accordingly
         if normalize:
@@ -874,8 +868,13 @@ class PrettyMIDI(object):
         """
         # Sum up all matrices from all instruments defaulting zeros matrix
         pc_trans_mat = sum(
-            [i.get_pitch_class_transition_matrix(normalize, time_thresh)
-             for i in self.instruments], np.zeros((12, 12)))
+            (
+                i.get_pitch_class_transition_matrix(normalize, time_thresh)
+                for i in self.instruments
+            ),
+            np.zeros((12, 12)),
+        )
+
 
         # Normalize accordingly
         if normalize:
@@ -1091,8 +1090,7 @@ class PrettyMIDI(object):
                               for note in instrument.notes])
         adjusted_note_offs = np.interp(note_offs, original_times, new_times)
         # Correct notes
-        for n, note in enumerate([note for instrument in self.instruments
-                                  for note in instrument.notes]):
+        for n, note in enumerate(note for instrument in self.instruments for note in instrument.notes):
             note.start = (adjusted_note_ons[n] > 0)*adjusted_note_ons[n]
             note.end = (adjusted_note_offs[n] > 0)*adjusted_note_offs[n]
         # After performing alignment, some notes may have an end time which is
@@ -1111,8 +1109,7 @@ class PrettyMIDI(object):
                  for event in event_getter(instrument)])
             adjusted_event_times = np.interp(
                 event_times, original_times, new_times)
-            for n, event in enumerate([event for instrument in self.instruments
-                                       for event in event_getter(instrument)]):
+            for n, event in enumerate(event for instrument in self.instruments for event in event_getter(instrument)):
                 event.time = adjusted_event_times[n]
             for instrument in self.instruments:
                 # We want to keep only the final event which has time ==
@@ -1335,7 +1332,7 @@ class PrettyMIDI(object):
         # Add a default time signature only if there is not one at time 0.
         add_ts = True
         if self.time_signature_changes:
-            add_ts = min([ts.time for ts in self.time_signature_changes]) > 0.0
+            add_ts = min(ts.time for ts in self.time_signature_changes) > 0.0
         if add_ts:
             # Add time signature event with default values (4/4)
             timing_track.append(mido.MetaMessage(
@@ -1390,11 +1387,7 @@ class PrettyMIDI(object):
                 track.append(mido.MetaMessage(
                     'track_name', time=0, name=instrument.name))
             # If it's a drum event, we need to set channel to 9
-            if instrument.is_drum:
-                channel = 9
-            # Otherwise, choose a channel from the possible channel list
-            else:
-                channel = channels[n % len(channels)]
+            channel = 9 if instrument.is_drum else channels[n % len(channels)]
             # Set the program number
             track.append(mido.Message(
                 'program_change', time=0, program=instrument.program,

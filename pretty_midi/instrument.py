@@ -66,10 +66,7 @@ class Instrument(object):
                 List of all note onsets.
 
         """
-        onsets = []
-        # Get the note-on time of each note played by this instrument
-        for note in self.notes:
-            onsets.append(note.start)
+        onsets = [note.start for note in self.notes]
         # Return them sorted (because why not?)
         return np.sort(onsets)
 
@@ -108,12 +105,8 @@ class Instrument(object):
             end_time = times[-1]
         # Allocate a matrix of zeros - we will add in as we go
         piano_roll = np.zeros((128, int(fs*end_time)))
-        # Drum tracks don't have pitch, so return a matrix of zeros
         if self.is_drum:
-            if times is None:
-                return piano_roll
-            else:
-                return np.zeros((128, times.shape[0]))
+            return piano_roll if times is None else np.zeros((128, times.shape[0]))
         # Add up piano roll matrix, note-by-note
         for note in self.notes:
             # Should interpolate
@@ -243,10 +236,7 @@ class Instrument(object):
                   [b.time for b in self.pitch_bends] +
                   [c.time for c in self.control_changes])
         # If there are no events, just return 0
-        if len(events) == 0:
-            return 0.
-        else:
-            return max(events)
+        return 0. if len(events) == 0 else max(events)
 
     def get_pitch_class_histogram(self, use_duration=False, use_velocity=False,
                                   normalize=False):
@@ -334,10 +324,7 @@ class Instrument(object):
 
         """
         # Crete a list of all invalid notes
-        notes_to_delete = []
-        for note in self.notes:
-            if note.end <= note.start:
-                notes_to_delete.append(note)
+        notes_to_delete = [note for note in self.notes if note.end <= note.start]
         # Remove the notes found
         for note in notes_to_delete:
             self.notes.remove(note)
@@ -457,8 +444,7 @@ class Instrument(object):
                               "is not installed.")
 
         if not os.path.exists(sf2_path):
-            raise ValueError("No soundfont file found at the supplied path "
-                             "{}".format(sf2_path))
+            raise ValueError(f"No soundfont file found at the supplied path {sf2_path}")
 
         # If the instrument has no notes, return an empty array
         if len(self.notes) == 0:
